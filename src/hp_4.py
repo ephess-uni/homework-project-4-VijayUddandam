@@ -8,12 +8,12 @@ from collections import defaultdict
 def reformat_dates(old_dates):
     """Accepts a list of date strings in format yyyy-mm-dd, re-formats each
     element to a format dd mmm yyyy--01 Jan 2001."""
-    new_dates = []
+    formatted_dates = []
     for date_str in old_dates:
         date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-        new_date_str = date_obj.strftime('%d %b %Y')
-        new_dates.append(new_date_str)
-    return new_dates
+        formatted_date = date_obj.strftime('%d %b %Y')
+        formatted_dates.append(formatted_date)
+    return formatted_dates
 
 
 def date_range(start, n):
@@ -46,8 +46,8 @@ def fees_report(infile, outfile):
     with open(infile, 'r') as file:
         reader = DictReader(file)
         for row in reader:
-            date_returned = datetime.strptime(row['date_returned'], '%m/%d/%y')
-            date_due = datetime.strptime(row['date_due'], '%m/%d/%y')
+            date_returned = datetime.strptime(row['date_returned'], '%m/%d/%Y')
+            date_due = datetime.strptime(row['date_due'], '%m/%d/%Y')
             if date_returned > date_due:
                 days_late = (date_returned - date_due).days
                 late_fee = days_late * 0.25
@@ -58,6 +58,7 @@ def fees_report(infile, outfile):
         writer.writeheader()
         for patron_id, fee in late_fees.items():
             writer.writerow({'patron_id': patron_id, 'late_fees': "{:.2f}".format(fee)})
+
 
 
 # The following main selection block will only run when you choose
