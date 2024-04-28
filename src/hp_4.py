@@ -8,57 +8,57 @@ from collections import defaultdict
 def reformat_dates(old_dates):
     """Accepts a list of date strings in format yyyy-mm-dd, re-formats each
     element to a format dd mmm yyyy--01 Jan 2001."""
-    formatted_dates = []
-    for date_str in old_dates:
-        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-        formatted_date = date_obj.strftime('%d %b %Y')
-        formatted_dates.append(formatted_date)
-    return formatted_dates
+    formatted = []
+    for date in old_dates:
+        date_obj = datetime.strptime(date, '%Y-%m-%d')
+        formatted.append(date_obj.strftime('%d %b %Y'))
+    return formatted
+
 
 
 def date_range(start, n):
     """For input date string `start`, with format 'yyyy-mm-dd', returns
     a list of of `n` datetime objects starting at `start` where each
     element in the list is one day after the previous."""
-    if not isinstance(start, str):
-        raise TypeError("Start date must be a string.")
-    if not isinstance(n, int):
-        raise TypeError("Number of dates must be an integer.")
-    
-    start_date = datetime.strptime(start, '%Y-%m-%d')
-    dates = [start_date + timedelta(days=i) for i in range(n)]
-    return dates
+    start_dt = datetime.strptime(start, '%Y-%m-%d')
+    return [start_dt + timedelta(days=i) for i in range(n)]
+
 
 
 def add_date_range(values, start_date):
     """Adds a daily date range to the list `values` beginning with
     `start_date`.  The date, value pairs are returned as tuples
     in the returned list."""
-    date_objects = date_range(start_date, len(values))
-    return list(zip(date_objects, values))
+    dates = date_range(start_date, len(values))
+    return list(zip(dates, values))
 
 
 def fees_report(infile, outfile):
     """Calculates late fees per patron id and writes a summary report to
     outfile."""
-    late_fees = defaultdict(float)
+    fees = defaultdict(float)
+    patron_ids = set()
+    
+    with open(infile) as f:
+        rows = DictReader(f)
+        
+        for row in rows:
+            patron_ids.add(row['patron_id'])
+            
+            due_date = datetime.strptime(row['date_due'], '%m/%d/%Y')
+            return_date = datetime.strptime(row['date_returned'], '%m/%d/%Y')
+            
+            if return_date > due_date:
+                days = (return_date - due_date).days            
+                fee = days * 0.25
+                fees[row['patron_id']] += fee
 
-    with open(infile, 'r') as file:
-        reader = DictReader(file)
-        for row in reader:
-            date_returned = datetime.strptime(row['date_returned'], '%m/%d/%Y')
-            date_due = datetime.strptime(row['date_due'], '%m/%d/%Y')
-            if date_returned > date_due:
-                days_late = (date_returned - date_due).days
-                late_fee = days_late * 0.25
-                late_fees[row['patron_id']] += late_fee
-
-    with open(outfile, 'w', newline='') as file:
-        writer = DictWriter(file, fieldnames=['patron_id', 'late_fees'])
+    with open(outfile, 'w', newline='') as f:
+        writer = DictWriter(f, fieldnames=['patron_id','late_fees']) 
         writer.writeheader()
-        for patron_id, fee in late_fees.items():
-            writer.writerow({'patron_id': patron_id, 'late_fees': "{:.2f}".format(fee)})
-
+        
+        for id in patron_ids:
+           writer.writerow({'patron_id': id, 'late_fees': '{0:.2f}'.format(fees.get(id, 0))})
 
 
 # The following main selection block will only run when you choose
